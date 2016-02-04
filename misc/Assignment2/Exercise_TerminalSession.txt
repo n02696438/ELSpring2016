@@ -1,0 +1,50 @@
+
+pi@raspberrypi:~$ ifconfig
+
+pi@raspberrypi:~$ df -h
+
+pi@raspberrypi:~$ du -sk ~/
+
+pi@raspberrypi:~$ du -sh ~/
+
+pi@raspberrypi:~$ ps xa
+
+pi@raspberrypi:~$ ps xa
+
+pi@raspberrypi:~$ date
+
+pi@raspberrypi:~$ who
+
+pi@raspberrypi:~$ whoami
+
+pi@raspberrypi:~$ which pytho
+
+pi@raspberrypi:~$ which nano
+
+pi@raspberrypi:~$ ls /sbin
+
+pi@raspberrypi:~$ lsmod
+
+pi@raspberrypi:~$ which mount
+
+pi@raspberrypi:~$ mount
+
+pi@raspberrypi:~$ which sqlite
+
+pi@raspberrypi:~$ which sqlite3
+
+pi@raspberrypi:~$ sudo apt-get install sqlite3
+
+pi@raspberrypi:~$ which sqlite3
+
+pi@raspberrypi:~$ dpkg -l >installed_packages.txt
+
+pi@raspberrypi:~$ tail installed_packages.txt
+
+pi@raspberrypi:~$ wc -l installed_packages.txt 
+
+pi@raspberrypi:~$ find / -iname 'syslog*'
+
+pi@raspberrypi:~$ find / -iname 'syslog*' 2>/dev/null
+
+
