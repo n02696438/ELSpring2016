@@ -1,0 +1,21 @@
+sudo apt-get install tesseract-ocr tesseract-ocr-eng libtesseract-dev libleptonica-dev
+
+need openCV installed on beaglebone
+sudo apt-get install libopencv-dev python-opencv
+
+compiling
+g++ -o tess tess.cpp -llept -ltesseract
+
+g++ -o imageCapture imageCapture.cpp 
+
+
+g++ -Iusr/include/opencv2 imageCapture.cpp $(pkg-config opencv --libs) -o imageCapture
+
+
+g++ -Iusr/include/opencv2 imageCaptureTesseract.cpp $(pkg-config opencv --libs) -llept -ltesseract -o imageCaptureTesseract
+
+//vbeaglebone command
+g++ -Iusr/include/opencv2 imageCap.cpp $(pkg-config opencv --libs) -o imageCap
+
+g++ -Iusr/include/opencv2 imageCap.cpp $(pkg-config opencv --libs) -llept -ltesseract -o imageCap
+
