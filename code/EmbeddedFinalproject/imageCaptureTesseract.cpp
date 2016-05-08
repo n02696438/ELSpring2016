@@ -10,20 +10,36 @@
 
 using namespace std;
 using namespace cv;
+
+
 //thresholding variables
 int threshold_value = 145;
 int threshold_type = 0;
+int threshold_ImageValue = 100;
+int threshold_done = 0;
 int const max_value = 255;
 int const max_type = 4;
 int const max_BINARY_value = 255;
+//Image Threshold Value
+int ImageThresh = 0;
+//thresholding sliders for setup/testing
+const char* window2_name = "Threshold";
+const char* trackbar_ImageValue = "Image Threshold Value";
+const char* trackbar_Done = "0 = not done 1 = done";
+const char* trackbar_value = "Value";
+//end thresholding sliders
 Mat src, src_gray, dst;
 IplImage* iplImg2;
 
-//FaceDetection
-// Function Headers
-int detectAndDisplay(Mat frame);
 
-// Global variables
+// Function Headers
+int detectAndDisplay(Mat frame);//Perform Face detection
+int DetectFace(void);//returns if face detected
+void Threshold( int, void* ); //threshold function header
+void findOptimalThreshold(void);//find optimal threshold level for current lighting
+STRING GetText(char*); // tesseract function header
+
+// Global variables for Facial Detection
 // Copy this file from opencv/data/haarscascades to target folder
 string face_cascade_name = "lbpcascade_frontalface.xml";
 CascadeClassifier face_cascade;
@@ -34,170 +50,90 @@ int faceDetected = 0;
 
 int main( int argc, const char** argv )
 {
-    //Tesseract Variables
-    const char* lang = "eng";
-    const char* filename = "ThresholdTest.png";
-    const char* imageText;
-	//Tesseract Init
-	tesseract::TessBaseAPI tess;
-    tess.Init(NULL, lang, tesseract::OEM_DEFAULT);
-    tess.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
 
     CvCapture* capture = 0;
     Mat frame, frameCopy, image;
-
-    capture = cvCaptureFromCAM( 0);//1 - CHANGED TO 0, Forgot webcam);//CV_CAP_ANY ); //0=default, -1=any camera, 	1..99=your camera
+    //capture from camera 0 on device
+    capture = cvCaptureFromCAM( 0);
     if( !capture )
     {
         cout << "No camera detected" << endl;
     }
-	
-	//capture.set(CV_CAP_PROP_FRAME_WIDTH, 1920); // valueX = your wanted width 
-	//capture.set(CV_CAP_PROP_FRAME_HEIGHT, 1080); // valueY = your wanted heigth
-	cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, 1920);
-	cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, 1080);
-
     cvNamedWindow( "result", CV_WINDOW_AUTOSIZE );
-
+    //If stream is open run program
     if( capture )
     {
-        cout << "In capture ..." << endl;
     	for(;;)
-   		{
-			faceDetected = 0;
-			IplImage* iplImg = cvQueryFrame( capture );
-			frame = iplImg;
-
-   			if( frame.empty() )
+   	{
+		faceDetected = 0;
+		//Take Picture from camera stream
+		IplImage* iplImg = cvQueryFrame( capture );
+		frame = iplImg;
+   		if( frame.empty() )
         	break;
+		//Flip image if reversed
     		if( iplImg->origin == IPL_ORIGIN_TL )
 			frame.copyTo( frameCopy );
     		else
     		flip( frame, frameCopy, 0 );
-
-   			cvShowImage( "result", iplImg );
-//End picture being taken
-
-//compression test
-			int p[3];
+		//display result image
+   		cvShowImage( "result", iplImg );
+		//save Image
+		int p[3];
     		p[0] = CV_IMWRITE_JPEG_QUALITY;
     		p[1] = 100;
     		p[2] = 0;
-//end compression
-///DETECTING EDGES AND CROPPING
-   			cvSaveImage("croptesting.png",iplImg,p);
-    		//Mat img = frame;
-    		Mat img = imread("croptesting.png", CV_LOAD_IMAGE_GRAYSCALE);
-
-    		Mat threshold_output;
-    		/// Detect edges using Threshold 
-    		threshold( img, threshold_output, 140, 255, THRESH_BINARY);
-
-    		//imshow( "threshold_output", threshold_output );
-
-    		vector<vector<Point> > contours;
-    		vector<Vec4i> hierarchy;
-    		/// Find contours
-    		findContours( threshold_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
-
-    		/// Approximate contours to polygons + get bounding rects
-    		vector<vector<Point> > contours_poly( contours.size() );
-    		Rect boundRect;
-
-	    	double maxArea = 0.0;
-    		for( int i = 0; i < contours.size(); i++ )
-    		{ 
-        		double area = contourArea(contours[i]);
-        		if(area > maxArea) 
-				{
-            		maxArea = area;
-            		approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
-            		boundRect = boundingRect( Mat(contours_poly[i]) );
-        		}
-    		}
-    		Mat cropImage = img(boundRect);
-    		//imshow("cropImage", cropImage);
-    		imwrite("croptest2.png",cropImage);
-///END DETECT EDGES AND CROPPING
-
-			//thresholding
-			//cout << "beginning threshold ..." << endl;
-			//Make image grey
-			src = imread("croptest2.png", 1 );
-			//src = cropImage;
-			cvtColor( src, src_gray, CV_BGR2GRAY);
-			//threshold function
-			threshold( src_gray, dst, threshold_value, max_BINARY_value,threshold_type );
-			//cout << "threshold done, saving threshold image ..." << endl;
-			imwrite("ThresholdTest.png",dst);
-			//Mat roi = dst( Rect(810,622,370,300) );
-			//imwrite("croptest.png",roi);
-
-			//saving picture
-			//cout << "Picture saving ..." << endl;
+		cvSaveImage("croptest2.png",iplImg,p);
        		cvSaveImage("CaptureTest.png",iplImg,p);
-			//cout << "Picture saved ..." << endl;
     		if( waitKey( 10 ) >= 0 )
-				break;
+			break;
 
-			//Detect Face
-			// Load the cascade
-    		if (!face_cascade.load(face_cascade_name))
-			{
-        		printf("--(!)Error loading\n");
-        		return (-1);
-    		}
-
-    		// Read the image file
-    		Mat frame = imread("CaptureTest.png");
-
-    		// Apply the classifier to the frame
-    		if (!frame.empty())
-			{
-        		faceDetected = detectAndDisplay(frame);
-    		}
-    		else
-			{
-       			printf(" --(!) No captured frame -- Break!");
-       			//break;
-    		}
+		//Check if a face is present
+		faceDetected = DetectFace();
+		//if a face is detected, inform user
     		if(faceDetected)
 			{
 	   			cout << "Face Detected" << endl;
 			}
+		//Perform Tesseract on image "ThresholdTest.png"
     		else
         	{
-				//Perform Tesseract on image "ThresholdTest.png"
-				FILE* fin = fopen(filename, "rb");
-   				 if (fin == NULL)
-    				{
-			      	  std::cout << "Cannot open " << filename << std::endl;
-			      	  return -1;
-			   		}
-		    	fclose(fin);
-
-		    	STRING text;
- 
-				tess.ProcessPages(filename, NULL, 0, &text);
-   		    	imageText = text.string();
-
-    			if(strcmp(imageText, "") == 0)
-					std::cout << "No text" << std::endl;
-		   		else
-					std::cout << "image text: " << imageText << std::endl;
-		    	//std::cout << text.string() << std::endl;
+			//find optimal threshold level for current lighting
+			findOptimalThreshold();	
+			STRING ImageText = GetText("ThresholdTest.png");
+			std::cout << "Image Text: " << ImageText.string() << std::endl;
 			}
   			waitKey(0);
+			//Acqure new frame from stream
 			cvReleaseCapture( &capture );
 			capture = cvCaptureFromCAM( 0);
 		}
-	
-    //cvReleaseCapture( &capture );
-    //cvDestroyWindow( "result" );
     return 0;
     }
 }
 
+int DetectFace(void)
+{
+//Detect Face
+// Load the cascade
+if (!face_cascade.load(face_cascade_name))
+	{
+	printf("--(!)Error loading\n");
+      	return (-1);
+	}
+// Read the image file
+Mat frame = imread("CaptureTest.png");
+// Apply the classifier to the frame
+if (!frame.empty())
+	{
+	faceDetected = detectAndDisplay(frame);
+	}
+else
+	{
+	printf(" --(!) No captured frame -- Break!");
+	}
+return faceDetected;
+}
 
 // Function detectAndDisplay
 int detectAndDisplay(Mat frame)
@@ -256,15 +192,6 @@ int detectAndDisplay(Mat frame)
         resize(crop, res, Size(128, 128), 0, 0, INTER_LINEAR); // This will be needed later while saving images
         cvtColor(crop, gray, CV_BGR2GRAY); // Convert cropped image to Grayscale
 
-        // Form a filename
-        //filename = "";
-        //stringstream ssfn;
-        //ssfn << filenumber << ".png";
-        //filename = ssfn.str();
-        //filenumber++;
-
-        //imwrite(filename, gray);
-
         Point pt1(faces[ic].x, faces[ic].y); // Display detected faces on main window - live stream from camera
         Point pt2((faces[ic].x + faces[ic].height), (faces[ic].y + faces[ic].width));
         rectangle(frame, pt1, pt2, Scalar(0, 255, 0), 2, 8, 0);
@@ -273,17 +200,70 @@ int detectAndDisplay(Mat frame)
 	return 1;
     else
 	return 0;
-    // Show image
-    /*sstm << "Crop area size: " << roi_b.width << "x" << roi_b.height << " Filename: " << filename;
-    text = sstm.str();
+}
 
-    putText(frame, text, cvPoint(30, 30), FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(0, 0, 255), 1, CV_AA);
-    imshow("original", frame);
 
-    if (!crop.empty())
+void Threshold( int, void* )
+{
+
+ 	threshold( src_gray, dst, threshold_value, max_BINARY_value,threshold_type );
+  	imshow( window2_name, dst );
+	ImageThresh = threshold_ImageValue;
+	if( waitKey( 10 ) >= 0 )
+	{
+		cvDestroyWindow(window2_name );
+		
+	}
+}
+
+void findOptimalThreshold(void)
+{
+	//thresholding
+	cout << "beginning threshold ..." << endl;
+	//Make image grey
+	src = imread("croptest2.png", 1 );
+	//src = cropImage;
+	cvtColor( src, src_gray, CV_BGR2GRAY);
+	//threshold function
+    /// Create a window for sliders
+	namedWindow( window2_name, CV_WINDOW_AUTOSIZE );
+	//Create Trackbar to set ID Threshold image level
+	createTrackbar( trackbar_ImageValue,
+		          window2_name, &threshold_ImageValue,
+ 			        max_value, Threshold );
+	//Create Trackbar to set threshold done
+	createTrackbar( trackbar_Done,
+		          window2_name, &threshold_done,
+         			        1, Threshold );
+
+	createTrackbar( trackbar_value,
+	         	   window2_name, &threshold_value,
+		         	  max_value, Threshold );
+	Threshold( 0, 0 );
+	imwrite("ThresholdTest.png",dst);
+}
+
+STRING GetText(char* filename)
+{
+	const char* lang = "eng";
+    const char* imageText;
+	//Initialize tesseract API
+    tesseract::TessBaseAPI tess;
+    tess.Init(NULL, lang, tesseract::OEM_DEFAULT);
+    tess.SetPageSegMode(tesseract::PSM_SINGLE_BLOCK);
+	//open file to perform OCR on
+    FILE* fin = fopen(filename, "rb");
+    if (fin == NULL)
     {
-        imshow("detected", crop);
+        std::cout << "Cannot open " << filename << std::endl;
     }
-    else
-        destroyWindow("detected");*/
+    fclose(fin);
+    STRING text;
+
+ 	//process image and get text
+    tess.ProcessPages(filename, NULL, 0, &text);
+    imageText = text.string();
+
+    return text;
+
 }
